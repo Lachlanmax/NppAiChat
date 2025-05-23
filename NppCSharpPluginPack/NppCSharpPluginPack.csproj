@@ -1,0 +1,216 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="12.0">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
+    <ProductVersion>9.0.21022</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>NppDemo</RootNamespace>
+    <AssemblyName>CSharpPluginPack</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <OldToolsVersion>3.5</OldToolsVersion>
+    <ProjectGuid>{EB8FC3A3-93E8-457B-B281-FAFA5119611A}</ProjectGuid>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <PlatformTarget>x86</PlatformTarget>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <UseWinFormsOutOfProcDesigner>True</UseWinFormsOutOfProcDesigner>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
+    <DebugType>none</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <FileAlignment>512</FileAlignment>
+    <PlatformTarget>x86</PlatformTarget>
+    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <UseWinFormsOutOfProcDesigner>True</UseWinFormsOutOfProcDesigner>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x64' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug-x64</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <PlatformTarget>x64</PlatformTarget>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <UseWinFormsOutOfProcDesigner>True</UseWinFormsOutOfProcDesigner>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
+    <DebugType>none</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release-x64</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <FileAlignment>512</FileAlignment>
+    <PlatformTarget>x64</PlatformTarget>
+    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <UseWinFormsOutOfProcDesigner>True</UseWinFormsOutOfProcDesigner>
+  </PropertyGroup>
+  <PropertyGroup>
+    <!-- Default values for debugging so it start correct version of Notepad++
+         $(ProgramW6432) and $(MSBuildProgramFiles32) points to the 64 and 32 bit "Program Files" directories -->
+    <NppPath64 Condition="'$(NppPath64)' == ''">$(ProgramW6432)\Notepad++</NppPath64>
+    <NppPath32 Condition="'$(NppPath32)' == ''">$(MSBuildProgramFiles32)\Notepad++</NppPath32>
+    <StartAction>Program</StartAction>
+    <StartProgram Condition="'$(Platform)'=='x64'">$(NppPath64)\notepad++.exe</StartProgram>
+    <StartProgram Condition="'$(Platform)'=='x86'">$(NppPath32)\notepad++.exe</StartProgram>
+  </PropertyGroup>
+  <PropertyGroup>
+    <RestorePackagesPath>$(MSBuildProjectDirectory)\packages</RestorePackagesPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json">
+      <Version>13.0.4</Version>
+    </PackageReference>
+    <PackageReference Include="UnmanagedExports.Repack.Upgrade" Version="1.2.1" GeneratePathProperty="true">
+      <ExcludeAssets>all</ExcludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <!-- include all project source files under these folders to avoid missing type/namespace compile errors -->
+    <Compile Include="Main.cs" />
+    <Compile Include="Forms\AboutForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\AboutForm.Designer.cs" />
+    <Compile Include="Forms\ChatDockForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\DarkModeTestForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\DarkModeTestForm.Designer.cs" />
+    <Compile Include="Forms\FormBase.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\FormBase.Designer.cs" />
+    <Compile Include="Forms\NppFormHelper.cs" />
+    <Compile Include="Forms\PopupDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\PopupDialog.Designer.cs" />
+    <Compile Include="Forms\SelectionRememberingForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\SelectionRememberingForm.Designer.cs" />
+    <Compile Include="Utils\**\*.cs" />
+    <Compile Include="PluginInfrastructure\**\*.cs" />
+    <Compile Include="JSON_Tools\**\*.cs" />
+    <Compile Include="Properties\**\*.Designer.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Forms\FormBase.resx">
+      <DependentUpon>FormBase.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <SubType>Designer</SubType>
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources1.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+  <!-- removed demo/test compile and resource entries -->
+  <Choose>
+    <!-- where should we look for dependency assemblies? -->
+    <When Condition=" '$(Platform)' == ''">
+      <ItemGroup>
+        <DEPENDENCY_DIR Include="Dependencies\x64" />
+        <DEPENDENCY_DLLS Include="Dependencies\x64\*.dll" />
+      </ItemGroup>
+    </When>
+    <Otherwise>
+      <ItemGroup>
+        <DEPENDENCY_DIR Include="Dependencies\$(Platform)" />
+        <DEPENDENCY_DLLS Include="Dependencies\$(Platform)\*.dll" />
+      </ItemGroup>
+    </Otherwise>
+  </Choose>
+  <ItemGroup>
+    <!-- references -->
+    <Reference Include="System" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+    <Reference Include="System.Net.Http" />
+    <!-- third-party dependencies -->
+    <Reference Include="ExampleDependency">
+      <HintPath>@(DEPENDENCY_DIR)\ExampleDependency.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <!-- icons and such -->
+    <Content Include="Properties\star_bmp.bmp" />
+    <None Include="Resources\close html tag toolbar darkmode.ico" />
+    <None Include="Resources\close html tag toolbar.ico" />
+    <None Include="Resources\close html tag toolbar bmp.bmp" />
+    <None Include="Resources\about form toolbar darkmode.ico" />
+    <None Include="Resources\selection remembering form toolbar darkmode.ico" />
+    <None Include="Resources\about form toolbar.ico" />
+    <None Include="Resources\selection remembering form toolbar.ico" />
+    <None Include="Resources\about form toolbar bmp.bmp" />
+    <None Include="Resources\selection remembering form toolbar bmp.bmp" />
+    <None Include="Resources\about form icon.PNG" />
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <Import Condition="Exists($(PkgUnmanagedExports_Repack_Upgrade))" Project="$(PkgUnmanagedExports_Repack_Upgrade)\build\UnmanagedExports.Repack.Upgrade.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  -->
+  <Target Name="CopyBin" DependsOnTargets="Build" AfterTargets="Build">
+    <!-- copy over the appropriate DLL and test files to the Notepad++ directory.
+    Otherwise Notepad++ will just load without the plugin. -->
+    <ItemGroup>
+      <RELEASE64 Include="bin\Release-x64\*.*" />
+      <DEBUG64 Include="bin\Debug-x64\*.*" />
+      <RELEASE32 Include="bin\Release\*.*" />
+      <DEBUG32 Include="bin\Debug\*.*" />
+      <NPP64BIT Include="$(NppPath64)\plugins\$(AssemblyName)" />
+      <NPP32BIT Include="$(NppPath32)\plugins\$(AssemblyName)" />
+      <TRANSLATION_ORIGIN Include="..\translation\*.json5" />
+      <TRANSLATION32 Include="$(NppPath32)\plugins\$(AssemblyName)\translation" />
+      <TRANSLATION64 Include="$(NppPath64)\plugins\$(AssemblyName)\translation" />
+      <TESTFILES_ORIGIN Include="..\testfiles\*.*" />
+      <TESTFILES32 Include="$(NppPath32)\plugins\$(AssemblyName)\testfiles" />
+      <TESTFILES64 Include="$(NppPath64)\plugins\$(AssemblyName)\testfiles" />
+    </ItemGroup>
+    <MakeDir Directories="@(NPP64BIT)" Condition=" '$(Platform)' == 'x64' " />
+    <MakeDir Directories="@(NPP32BIT)" Condition=" '$(Platform)' == 'x86' " />
+    <!-- copy all dependency DLL's to current bin directory -->
+    <Copy Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' " SourceFiles="@(DEPENDENCY_DLLS)" DestinationFolder="bin\Release-x64" SkipUnchangedFiles="true" />
+    <Copy Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' " SourceFiles="@(DEPENDENCY_DLLS)" DestinationFolder="bin\Release" SkipUnchangedFiles="true" />
+    <Copy Condition=" '$(Configuration)|$(Platform)' == 'Debug|x64' " SourceFiles="@(DEPENDENCY_DLLS)" DestinationFolder="bin\Debug-x64" SkipUnchangedFiles="true" />
+    <Copy Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' " SourceFiles="@(DEPENDENCY_DLLS)" DestinationFolder="bin\Debug" SkipUnchangedFiles="true" />
+    <!-- copy all translation files to NPP plugin dir's subdirectory -->
+    <MakeDir Directories="@(TRANSLATION64)" Condition=" '$(Platform)' == 'x64' " />
+    <MakeDir Directories="@(TRANSLATION32)" Condition=" '$(Platform)' == 'x86' " />
+    <Copy Condition=" '$(Platform)' == 'x64' " SourceFiles="@(TRANSLATION_ORIGIN)" DestinationFolder="@(TRANSLATION64)" SkipUnchangedFiles="true" />
+    <Copy Condition=" '$(Platform)' == 'x86' " SourceFiles="@(TRANSLATION_ORIGIN)" DestinationFolder="@(TRANSLATION32)" SkipUnchangedFiles="true" />
+    <!-- copy all test files to NPP plugin dir's subdirectory -->
+    <MakeDir Directories="@(TESTFILES64)" Condition=" '$(Platform)' == 'x64' " />
+    <MakeDir Directories="@(TESTFILES32)" Condition=" '$(Platform)' == 'x86' " />
+    <Copy Condition=" '$(Platform)' == 'x64' " SourceFiles="@(TESTFILES_ORIGIN)" DestinationFolder="@(TESTFILES64)" SkipUnchangedFiles="true" />
+    <Copy Condition=" '$(Platform)' == 'x86' " SourceFiles="@(TESTFILES_ORIGIN)" DestinationFolder="@(TESTFILES32)" SkipUnchangedFiles="true" />
+    <!-- copy all files in current bin directory to NPP plugin dir -->
+    <Copy SourceFiles="@(RELEASE64)" Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' " DestinationFolder="@(NPP64BIT)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(RELEASE32)" Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' " DestinationFolder="@(NPP32BIT)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(DEBUG64)" Condition=" '$(Configuration)|$(Platform)' == 'Debug|x64' " DestinationFolder="@(NPP64BIT)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(DEBUG32)" Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' " DestinationFolder="@(NPP32BIT)" SkipUnchangedFiles="true" />
+  </Target>
+</Project>
