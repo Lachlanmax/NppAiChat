@@ -24,7 +24,6 @@ An AI-powered chat assistant plugin for Notepad++ that brings the capabilities o
 
 - Visual Studio (recommended 2019 or later) with C++ toolkit
 - Notepad++ plugin SDK (included or [download](https://github.com/notepad-plus-plus/nppPluginTemplate))
-- CMake (optional, for cross-platform builds)
 
 ### Steps
 
