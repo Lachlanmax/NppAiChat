@@ -14,7 +14,7 @@ An AI-powered chat assistant plugin for Notepad++ that brings the capabilities o
 
 ## Installation
 
-1. **Download** the latest release from this repository's [Releases](#) page (or build from source, see below).
+1. **Download** the latest release from this repository's [Releases](https://github.com/Lachlanmax/NppAiChat/releases) page (or build from source, see below).
 2. **Extract** the plugin files to your Notepad++ `plugins` directory (typically `C:\Program Files\Notepad++\plugins` or `%APPDATA%\Notepad++\plugins`).
 3. **Restart Notepad++.**
 
