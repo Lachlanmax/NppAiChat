@@ -19,7 +19,7 @@
     <ToolsDir>$(SolutionDir)Tools\</ToolsDir>
     <LibOutDir>$(BuildBaseDir)Libraries\</LibOutDir>
     <BinOutDir>$(BuildBaseDir)Binaries\</BinOutDir>
-    <OutputPath>$(BinOutDir)\$(RootNamespace)_$(Configuration)\</OutputPath>
+    <OutputPath>$(BinOutDir)\$(Platform)_$(Configuration.ToLower())\$(RootNamespace)\</OutputPath>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <NoWarn>NU1603;NU1803;NU3018;CS0436;</NoWarn>
     <RestoreConfigFile>$(SolutionDir)nuget.config</RestoreConfigFile>
@@ -37,6 +37,18 @@
     <DebugSymbols>false</DebugSymbols>
     <DebugType>none</DebugType>
     <Optimize>true</Optimize>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x64' ">
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
+    <PlatformTarget>x86</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
+    <PlatformTarget>x86</PlatformTarget>
   </PropertyGroup>
   <PropertyGroup>
 
