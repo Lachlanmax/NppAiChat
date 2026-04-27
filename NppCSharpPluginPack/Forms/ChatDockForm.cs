@@ -36,6 +36,14 @@ public class ChatDockForm : FormBase
     private CancellationTokenSource cancellationTokenSource;
     private bool IsLoaded = false;
 
+    // Streaming support
+    private StringBuilder accumulatedResponse = new StringBuilder();
+    private StringBuilder currentStreamingContent = new StringBuilder();
+    private bool isStreamingMode = true;
+    private int streamingStartPosition = -1; // Track where streaming content begins
+    private bool hasCodeBlocks = false; // Track if response contains file creation blocks
+    private bool shouldStream = true; // Control whether to display streaming content
+
     public ChatDockForm() : base(false, true)
     {
         Text = "Assistant";
@@ -287,13 +295,13 @@ public class ChatDockForm : FormBase
 
         UpdateStatus("Prompt sent! Waiting for response...");
 
-        Color userColor = GetUserMessageColor();
+        var userColor = GetUserMessageColor();
         AppendToHistoryFormatted("User", prompt, userColor);
         inputBox.Clear();
 
-        string endpoint = Main.settings.llm_endpoint;
-        string token = Main.settings.llm_token;
-        string model = Main.settings.llm_model;
+        var endpoint = Main.settings.llm_endpoint;
+        var token = Main.settings.llm_token;
+        var model = Main.settings.llm_model;
 
         if (string.IsNullOrEmpty(endpoint) || string.IsNullOrEmpty(token))
         {
@@ -302,35 +310,65 @@ public class ChatDockForm : FormBase
             return;
         }
 
-        Color assistantColor = GetAssistantMessageColor();
+        var assistantColor = GetAssistantMessageColor();
         AppendToHistoryFormatted("Assistant", "", assistantColor);
 
         UpdateStatus("Processing");
 
+        // Clear accumulation buffers
+        accumulatedResponse.Clear();
+        currentStreamingContent.Clear();
+        streamingStartPosition = -1; // Reset streaming position
+        hasCodeBlocks = false; // Reset code block detection
+        shouldStream = true; // Start with streaming enabled
+
         try
         {
             // Always include editor context - this is the core functionality
-            string editorContent = GetCurrentFileContent();
+            var editorContent = GetCurrentFileContent();
 
-            string fullResponse = await LlmClient.SendPromptAsync(
+            // Use streaming instead of non-streaming
+            await LlmClient.SendPromptStreamingAsync(
                 endpoint,
                 token,
                 model,
                 prompt,
                 conversationHistory,
+                onChunk: OnChunkReceived,
                 editorContent,
-                true);
+                true,
+                cancellationTokenSource.Token);
 
             UpdateStatus("Response received!");
 
-            ParseAndCreateFiles(fullResponse);
+            // Get the complete response for file processing
+            var fullResponse = accumulatedResponse.ToString();
 
+            // Process files using existing logic (preserves file editing)
+            ParseAndCreateFiles(fullResponse, replaceStreamingContent: true);
+
+            // Update conversation history
             conversationHistory.Add(new ChatMessage("user", prompt));
             conversationHistory.Add(new ChatMessage("assistant", fullResponse));
         }
         catch (OperationCanceledException)
         {
-            AppendToChatHistory(Environment.NewLine + "[Request stopped by user]" + Environment.NewLine + Environment.NewLine);
+            // Handle partial response if user stopped streaming
+            if (accumulatedResponse.Length > 0)
+            {
+                var partialResponse = accumulatedResponse.ToString();
+                AppendToChatHistory(Environment.NewLine + "[Streaming stopped by user - partial response]" + Environment.NewLine + Environment.NewLine);
+
+                // Still try to process any complete code blocks
+                ParseAndCreateFiles(partialResponse, replaceStreamingContent: true);
+
+                conversationHistory.Add(new ChatMessage("user", prompt));
+                conversationHistory.Add(new ChatMessage("assistant", partialResponse));
+            }
+            else
+            {
+                AppendToChatHistory(Environment.NewLine + "[Request stopped by user]" + Environment.NewLine + Environment.NewLine);
+            }
             UpdateStatus("Request stopped");
         }
         catch (Exception ex)
@@ -344,7 +382,33 @@ public class ChatDockForm : FormBase
         }
     }
 
-    private void ParseAndCreateFiles(string response)
+    private void OnChunkReceived(string chunk)
+    {
+        // Accumulate for post-processing
+        accumulatedResponse.Append(chunk);
+        currentStreamingContent.Append(chunk);
+
+        // Check accumulated response for CODE_BLOCK markers
+        if (shouldStream && accumulatedResponse.ToString().Contains("[CODE_BLOCK"))
+        {
+            hasCodeBlocks = true;
+            shouldStream = false; // Stop streaming to UI
+
+            // Replace any streamed content with processing message
+            if (streamingStartPosition >= 0)
+            {
+                ReplaceStreamingContentWithProcessingMessage();
+            }
+        }
+
+        // Only display chunk in real-time if we should still stream
+        if (shouldStream)
+        {
+            AppendStreamingChunk(chunk);
+        }
+    }
+
+    private void ParseAndCreateFiles(string response, bool replaceStreamingContent = false)
     {
         try
         {
@@ -362,12 +426,12 @@ public class ChatDockForm : FormBase
                 int codeEnd = response.IndexOf("[/CODE_BLOCK]", codeStartEnd);
                 if (codeEnd == -1) break;
 
-                string codeContent = response.Substring(codeStartEnd + 1, codeEnd - codeStartEnd - 1).Trim();
+                var codeContent = response.Substring(codeStartEnd + 1, codeEnd - codeStartEnd - 1).Trim();
 
                 if (!string.IsNullOrEmpty(codeContent))
                 {
-                    string fileName = ExtractFileNameFromBlock(response, codeStart);
-                    string language = ExtractLanguageFromBlock(response, codeStart, codeStartEnd);
+                    var fileName = ExtractFileNameFromBlock(response, codeStart);
+                    var language = ExtractLanguageFromBlock(response, codeStart, codeStartEnd);
                     files.Add((fileName, codeContent, language));
                 }
 
@@ -376,17 +440,38 @@ public class ChatDockForm : FormBase
 
             if (files.Count > 0)
             {
-                AppendToChatHistory(Environment.NewLine + "[Processing " + files.Count + " file(s)...]" + Environment.NewLine);
-
-                for (int i = 0; i < files.Count; i++)
+                // If we already detected code blocks during streaming, just show file processing
+                if (hasCodeBlocks)
                 {
-                    var (fileName, content, language) = files[i];
-                    CreateFile(fileName, content, language);
+                    AppendToChatHistory("[Processing " + files.Count + " file(s)...]" + Environment.NewLine);
                 }
+                else
+                {
+                    // Replace streaming content with file processing message
+                    if (replaceStreamingContent && streamingStartPosition >= 0)
+                    {
+                        ReplaceStreamingContentWithFileProcessingMessage(files.Count);
+                    }
+                    else
+                    {
+                        AppendToChatHistory("[Processing " + files.Count + " file(s)...]" + Environment.NewLine);
+                    }
+                }
+
+                files.ForEach(x => CreateFile(x.fileName, x.content, x.language));
             }
             else
             {
-                MarkdownFormatter.AppendFormattedMarkdown(chatHistory, response);
+                // No code blocks found - replace streaming content with formatted markdown
+                if (replaceStreamingContent && streamingStartPosition >= 0)
+                {
+                    ReplaceStreamingContentWithFormattedMarkdown(response);
+                }
+                else
+                {
+                    // No streaming occurred, show the full response
+                    MarkdownFormatter.AppendFormattedMarkdown(chatHistory, response);
+                }
             }
         }
         catch (Exception ex)
@@ -399,15 +484,15 @@ public class ChatDockForm : FormBase
     {
         try
         {
-            int searchStart = Math.Max(0, codeBlockStart - FileInfoSearchWindow);
-            int searchEnd = codeBlockStart;
-            string precedingText = response.Substring(searchStart, searchEnd - searchStart);
+            var searchStart = Math.Max(0, codeBlockStart - FileInfoSearchWindow);
+            var searchEnd = codeBlockStart;
+            var precedingText = response.Substring(searchStart, searchEnd - searchStart);
 
-            int fileInfoPos = precedingText.LastIndexOf("<file_info>");
+            var fileInfoPos = precedingText.LastIndexOf("<file_info>");
             if (fileInfoPos != -1)
             {
-                int nameStart = precedingText.IndexOf("<name>", fileInfoPos);
-                int nameEnd = precedingText.IndexOf("</name>", nameStart);
+                var nameStart = precedingText.IndexOf("<name>", fileInfoPos);
+                var nameEnd = precedingText.IndexOf("</name>", nameStart);
                 if (nameStart != -1 && nameEnd != -1)
                 {
                     return precedingText.Substring(nameStart + 6, nameEnd - nameStart - 6).Trim();
@@ -427,12 +512,12 @@ public class ChatDockForm : FormBase
     {
         try
         {
-            string blockContent = response.Substring(codeBlockStart, codeStartEnd - codeBlockStart + 1);
-            int langStart = blockContent.IndexOf("language=\"");
+            var blockContent = response.Substring(codeBlockStart, codeStartEnd - codeBlockStart + 1);
+            var langStart = blockContent.IndexOf("language=\"");
             if (langStart != -1)
             {
                 langStart += "language=\"".Length;
-                int langEnd = blockContent.IndexOf("\"", langStart);
+                var langEnd = blockContent.IndexOf("\"", langStart);
                 if (langEnd != -1)
                 {
                     return blockContent.Substring(langStart, langEnd - langStart).ToLower();
@@ -515,9 +600,9 @@ public class ChatDockForm : FormBase
     {
         try
         {
-            string currentFilePath = Npp.notepad.GetCurrentFilePath();
+            var currentFilePath = Npp.notepad.GetCurrentFilePath();
 
-            string tempDir = System.IO.Path.GetTempPath();
+            var tempDir = System.IO.Path.GetTempPath();
             string filePath = null;
 
             if (string.IsNullOrEmpty(fileName))
@@ -529,9 +614,9 @@ public class ChatDockForm : FormBase
                 }
                 else
                 {
-                    string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-                    string extension = GetFileExtensionFromLanguage(language);
-                    string defaultFileName = "generated_" + timestamp + extension;
+                    var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                    var extension = GetFileExtensionFromLanguage(language);
+                    var defaultFileName = "generated_" + timestamp + extension;
                     filePath = System.IO.Path.Combine(tempDir, defaultFileName);
                     System.IO.File.WriteAllText(filePath, content);
                     Npp.notepad.OpenFile(filePath);
@@ -542,7 +627,7 @@ public class ChatDockForm : FormBase
 
             if (!string.IsNullOrEmpty(currentFilePath))
             {
-                string currentFileName = System.IO.Path.GetFileName(currentFilePath);
+                var currentFileName = System.IO.Path.GetFileName(currentFilePath);
                 if (currentFileName.Equals(fileName, StringComparison.OrdinalIgnoreCase))
                 {
                     Npp.editor.SetText(content);
@@ -589,6 +674,10 @@ public class ChatDockForm : FormBase
     private void ResetSendButton()
     {
         isSending = false;
+        streamingStartPosition = -1; // Reset streaming position
+        hasCodeBlocks = false; // Reset code block detection
+        shouldStream = true; // Reset streaming flag
+
         if (chatHistory.InvokeRequired)
         {
             chatHistory.Invoke(new Action(() =>
@@ -660,6 +749,134 @@ public class ChatDockForm : FormBase
         chatHistory.AppendText(text);
         chatHistory.SelectionStart = chatHistory.TextLength;
         chatHistory.ScrollToCaret();
+    }
+
+    private void AppendStreamingChunk(string chunk)
+    {
+        if (chatHistory.InvokeRequired)
+        {
+            chatHistory.Invoke(new Action(() => AppendStreamingChunk(chunk)));
+            return;
+        }
+
+        // Track starting position for first chunk
+        if (streamingStartPosition == -1)
+        {
+            streamingStartPosition = chatHistory.TextLength;
+        }
+
+        // Append chunk to chat history
+        chatHistory.AppendText(chunk);
+
+        // Auto-scroll to latest content
+        chatHistory.SelectionStart = chatHistory.TextLength;
+        chatHistory.ScrollToCaret();
+    }
+
+    private void ReplaceStreamingContent(string newContent, bool isMarkdown = false)
+    {
+        if (chatHistory.InvokeRequired)
+        {
+            chatHistory.Invoke(new Action(() => ReplaceStreamingContent(newContent, isMarkdown)));
+            return;
+        }
+
+        if (streamingStartPosition < 0 || streamingStartPosition >= chatHistory.TextLength)
+            return;
+
+        try
+        {
+            // Select the streaming content
+            chatHistory.Select(streamingStartPosition, chatHistory.TextLength - streamingStartPosition);
+
+            // Replace the selected text with new content
+            chatHistory.SelectedText = newContent;
+
+            // Auto-scroll to end
+            chatHistory.SelectionStart = chatHistory.TextLength;
+            chatHistory.ScrollToCaret();
+        }
+        catch (Exception ex)
+        {
+            // If replacement fails, just append the content
+            AppendToChatHistory(newContent);
+        }
+        finally
+        {
+            // Reset streaming position tracker
+            streamingStartPosition = -1;
+        }
+    }
+
+    private void ReplaceStreamingContentWithProcessingMessage()
+    {
+        ReplaceStreamingContent("Processing..." + Environment.NewLine);
+    }
+
+    private void ReplaceStreamingContentWithFileProcessingMessage(int fileCount)
+    {
+        ReplaceStreamingContent($"[Processing {fileCount} file(s)...]" + Environment.NewLine);
+    }
+
+    private void ReplaceStreamingContentWithFormattedMarkdown(string markdownText)
+    {
+        if (chatHistory.InvokeRequired)
+        {
+            chatHistory.Invoke(new Action(() => ReplaceStreamingContentWithFormattedMarkdown(markdownText)));
+            return;
+        }
+
+        if (streamingStartPosition < 0 || streamingStartPosition >= chatHistory.TextLength)
+            return;
+
+        try
+        {
+            // Save the content before streaming position (preserves all previous formatting)
+            string beforeContent = chatHistory.Text.Substring(0, streamingStartPosition);
+
+            // Get the RTF content before streaming position to preserve formatting
+            chatHistory.Select(0, streamingStartPosition);
+            string beforeRtf = chatHistory.SelectedRtf;
+
+            // Clear the entire chat history
+            chatHistory.Clear();
+
+            // Restore the formatted content before streaming position
+            if (!string.IsNullOrEmpty(beforeRtf) && beforeRtf.Length > 50) // Basic validation
+            {
+                try
+                {
+                    chatHistory.SelectedRtf = beforeRtf;
+                }
+                catch
+                {
+                    // If RTF fails, fall back to plain text
+                    chatHistory.AppendText(beforeContent);
+                }
+            }
+            else if (!string.IsNullOrEmpty(beforeContent))
+            {
+                chatHistory.AppendText(beforeContent);
+            }
+
+            // Append the new formatted markdown content
+            MarkdownFormatter.AppendFormattedMarkdown(chatHistory, markdownText);
+
+            // Auto-scroll to end
+            chatHistory.SelectionStart = chatHistory.TextLength;
+            chatHistory.ScrollToCaret();
+        }
+        catch (Exception ex)
+        {
+            // If replacement fails, just append the formatted content
+            AppendToChatHistory(Environment.NewLine + "[Formatting error]" + Environment.NewLine);
+            MarkdownFormatter.AppendFormattedMarkdown(chatHistory, markdownText);
+        }
+        finally
+        {
+            // Reset streaming position tracker
+            streamingStartPosition = -1;
+        }
     }
 
     private void AppendToHistoryFormatted(string speaker, string message, Color color)

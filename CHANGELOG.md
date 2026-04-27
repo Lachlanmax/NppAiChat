@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.2]
+### Improvements
+- Support streaming text from LLM to Chat Assistant sidebar directly
+
+### Fixes
+- Fixed some more visabilty issues
+
+
 ## [1.0.1]
 ### Improvements
 - Color inheritance: Chat form now inherits colors from the main Notepad++ window for better visual integration.

@@ -22,7 +22,7 @@ public sealed class Version
 
         var form = new Form
         {
-            Text = "Release Notes - Version 2.5.0",
+            Text = "Release Notes - Version X.X.X",
             Size = new Size(800, 600),
             StartPosition = FormStartPosition.CenterScreen,
             FormBorderStyle = FormBorderStyle.FixedDialog,
@@ -32,7 +32,7 @@ public sealed class Version
 
         var titleLabel = new Label
         {
-            Text = "What's New in Version 2.5.0",
+            Text = "What's New?",
             Font = new Font("Segoe UI", 14, FontStyle.Bold),
             Location = new Point(20, 20),
             AutoSize = true
