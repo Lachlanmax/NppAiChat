@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [1.0.2]
 ### Improvements
 - Support streaming text from LLM to Chat Assistant sidebar directly
+- Improved Build folder structure by platform and build type
 
 ### Fixes
 - Fixed some more visabilty issues
