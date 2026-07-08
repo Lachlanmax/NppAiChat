@@ -13,8 +13,8 @@ public class Settings : SettingsBase
      Category("LLM"), DefaultValue("")]
     public string llm_endpoint { get; set; } = "";
 
-    [Description("LLM API bearer token (stored in plugin settings)"),
-     Category("LLM"), DefaultValue("")]
+    [Description("LLM API bearer token (stored encrypted in plugin settings)"),
+     Category("LLM"), DefaultValue(""), EncryptedSetting, PasswordPropertyText(true)]
     public string llm_token { get; set; } = "";
 
     [Description("LLM model name (e.g. openai/gpt-4.1)"),
