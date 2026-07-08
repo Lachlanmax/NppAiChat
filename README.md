@@ -11,13 +11,8 @@ An AI-powered chat assistant plugin for Notepad++ that brings the capabilities o
 - **Customizable prompts:** Tailor AI behavior with your own instructions and commands.
 - **Privacy-focused:** Your files remain local—the plugin only sends necessary data for AI processing.
 - **Dark Mode Support:** No worries of weird looking sidebars
-
-
-
-
+---
 <img width="232" height="258" alt="image" src="https://github.com/user-attachments/assets/3efcac53-f2a1-49ea-9556-cb60c0da2621" />
-
-
 
 ## Installation
 
