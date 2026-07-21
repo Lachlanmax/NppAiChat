@@ -14,6 +14,7 @@ using System.Text;
 using System.Threading;
 using System.Windows.Forms;
 using NppAiChat.Utils;
+using System.Security.Cryptography;
 
 namespace NppAiChat.PluginInfrastructure;
 
@@ -88,17 +89,18 @@ public class SettingsBase
     /// True otherwise.</returns>
     public bool ReadFromIniFile(string filename = null)
     {
+        try
+        {
+            InvokeVersionInfoThread();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error in {nameof(ReadFromIniFile)}: {ex.Message}");
+        }
+
         filename = filename ?? IniFilePath;
         if (!File.Exists(filename))
         {
-            try
-            {
-                InvokeVersionInfoThread();
-            }
-            catch (Exception ex) 
-            {
-                Debug.WriteLine($"Error in {nameof(ReadFromIniFile)}: {ex.Message}");
-            }
             return false;
         }
 
@@ -110,6 +112,7 @@ public class SettingsBase
 
         //var loaded = GetKeys(filename, "General");
         bool allConvertedCorrectly = true;
+        bool needsResave = false; // Track if any encrypted settings were migrated from plaintext
         foreach (var propertyInfo in GetType().GetProperties())
         {
             var category = ((CategoryAttribute)propertyInfo.GetCustomAttributes(typeof(CategoryAttribute), false).FirstOrDefault())?.Category ?? "General";
@@ -117,6 +120,23 @@ public class SettingsBase
             if (loaded.ContainsKey(category) && loaded[category].ContainsKey(name) && !string.IsNullOrEmpty(loaded[category][name]))
             {
                 var rawString = loaded[category][name];
+
+                // Decrypt DPAPI-encrypted values, or auto-migrate plaintext tokens
+                if (propertyInfo.GetCustomAttributes(typeof(EncryptedSettingAttribute), false).Any())
+                {
+                    if (DpapiHelper.IsEncrypted(rawString))
+                    {
+                        // Value is already encrypted — decrypt it
+                        rawString = DpapiHelper.Decrypt(rawString);
+                    }
+                    else if (!string.IsNullOrEmpty(rawString))
+                    {
+                        // Legacy plaintext value — keep it as the property value now,
+                        // and flag for re-save so it gets encrypted on disk.
+                        needsResave = true;
+                    }
+                }
+
                 var converter = TypeDescriptor.GetConverter(propertyInfo.PropertyType);
                 bool convertedCorrectly = false;
                 Exception ex = null;
@@ -162,6 +182,14 @@ public class SettingsBase
                 }
             }
         }
+
+        // Auto-migrate: if any encrypted settings were stored as plaintext,
+        // re-save the INI file now so they get encrypted on disk.
+        if (needsResave)
+        {
+            SaveToIniFile(filename);
+        }
+
         return allConvertedCorrectly;
     }
 
@@ -236,7 +264,15 @@ public class SettingsBase
                 string description = Translator.TranslateSettingsDescription(propertyInfo);
                 fp.WriteLine("; " + description.Replace(Environment.NewLine, Environment.NewLine + "; "));
                 var converter = TypeDescriptor.GetConverter(propertyInfo.PropertyType);
-                fp.WriteLine("{0}={1}", propertyInfo.Name, converter.ConvertToInvariantString(propertyInfo.GetValue(this, null)));
+                var value = converter.ConvertToInvariantString(propertyInfo.GetValue(this, null));
+
+                // Encrypt sensitive values with DPAPI before writing
+                if (propertyInfo.GetCustomAttributes(typeof(EncryptedSettingAttribute), false).Any() && !string.IsNullOrEmpty(value))
+                {
+                    value = DpapiHelper.Encrypt(value);
+                }
+
+                fp.WriteLine("{0}={1}", propertyInfo.Name, value);
             }
         }
     }

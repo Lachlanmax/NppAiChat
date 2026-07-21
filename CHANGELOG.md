@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.3]
+### Security Features
+- Secure credential storage: API tokens and sensitive settings are now encrypted using DPAPI instead of being stored in plain text.
+- Token field now displays `*****` instead of the actual value in the settings UI.
+
 ## [1.0.2]
 ### Improvements
 - Support streaming text from LLM to Chat Assistant sidebar directly
@@ -9,7 +14,6 @@ All notable changes to this project will be documented in this file.
 
 ### Fixes
 - Fixed some more visabilty issues
-
 
 ## [1.0.1]
 ### Improvements
